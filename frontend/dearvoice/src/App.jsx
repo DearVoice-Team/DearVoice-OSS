@@ -8,7 +8,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import FindPassword from "./pages/FindPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/onboarding";
+import Onboarding from "./pages/Onboarding";
 
 import Home from "./pages/Home";
 import VoiceLetterPage from "./pages/VoiceLetter";
