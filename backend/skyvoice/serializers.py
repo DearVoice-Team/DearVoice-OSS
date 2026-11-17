@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import SkyVoiceLetter
+from common.s3 import presigned_url
 from django.utils import timezone
 import pytz
 
@@ -31,6 +32,12 @@ class SkyVoiceLetterSerializer(serializers.ModelSerializer):
             'created_at',
             'replied_at',
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for field in ('audio_url', 'reply_voice_url'):
+            data[field] = presigned_url(data.get(field))
+        return data
 
     def validate_scheduled_at(self, value):
         if value and timezone.is_naive(value):

@@ -4,6 +4,7 @@ from rest_framework import serializers
 from .models import Letter, LetterRecipient
 from users.models import CustomUser
 from letters.tasks import send_letter_task
+from common.s3 import presigned_url
 
 class LetterSerializer(serializers.ModelSerializer):
     recipients = serializers.SerializerMethodField()
@@ -24,6 +25,11 @@ class LetterSerializer(serializers.ModelSerializer):
             'title'
         ]
         read_only_fields = ['sender']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['audio_url'] = presigned_url(data.get('audio_url'))
+        return data
 
     def get_sender(self, obj):
         user = obj.sender
