@@ -1,0 +1,41 @@
+# 보안: 향후 Docker 빌드 시 민감 파일/런타임 파일이 이미지에 포함되지 않도록 함
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+google-tts.json
+
+# DB / 런타임 상태
+*.sqlite3
+*.db
+*.sql
+*.dump
+celerybeat-schedule*
+celerybeat.pid
+
+# 사용자 데이터
+media/
+uploads/
+letters/audio/
+*.mp3
+*.wav
+*.webm
+*.m4a
+
+# 개발 환경
+.git
+.github
+venv/
+.venv/
+Lib/
+__pycache__/
+*.py[cod]
+*.log
+.vscode/
+.idea/

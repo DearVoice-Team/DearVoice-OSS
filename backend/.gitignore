@@ -21,16 +21,39 @@ staticfiles/
 *.json
 *.pem
 google-tts.json
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
 
-migrations/
+# migrations/ 는 Git으로 관리한다 (복원 작업에서 무시 규칙 제거)
 .env
 *.env
 .env.*
+!.env.example
 
 venv/
+.venv/
 Lib/
 .bak
 .dat
+*.bak
+*.dat
+*.dir
 
+# Celery beat 런타임 상태 파일
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat-schedule-*
+celerybeat.pid
+
+# 사용자 음성/업로드 데이터
 *.mp3
+*.wav
+*.webm
+*.m4a
 letters/audio/
+uploads/
+*.sql
+*.dump

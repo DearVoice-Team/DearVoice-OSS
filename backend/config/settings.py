@@ -3,14 +3,25 @@ from datetime import timedelta
 import os
 from celery.schedules import crontab
 from dotenv import load_dotenv
+import certifi
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+os.environ['SSL_CERT_FILE'] = certifi.where()
 
 # ✅ BASE_DIR 기준으로 .env 위치 지정해서 load
 load_dotenv(dotenv_path=BASE_DIR / '.env')
 
+
+def _env_list(name, default=""):
+    """쉼표로 구분된 환경변수를 리스트로 변환하고 빈 값은 제거한다."""
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
 CLOVA_CLIENT_ID = os.getenv("CLOVA_CLIENT_ID")
 CLOVA_CLIENT_SECRET = os.getenv("CLOVA_CLIENT_SECRET")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
@@ -19,15 +30,14 @@ DB_HOST = os.getenv('DB_HOST')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
+# [OSS] 필수 환경변수. 누락 시 기동을 실패시켜 불안전한 기본값으로 숨기지 않는다.
 SECRET_KEY = os.environ["SECRET_KEY"]
 
+# [OSS] 기본값은 False
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if host.strip()
-]
+# [OSS] 환경변수로 허용 호스트 지정
+ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,7 +72,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+# 원본 main의 merge conflict(b486f50 "fix: cors 오류 해결")를 b486f50 쪽으로 해결.
+# 프론트엔드가 withCredentials: true 를 사용하므로 와일드카드(*) 대신 명시적 Origin 목록이 필요하다.
+# FRONTEND_BASE_URL(기본) + CORS_ALLOWED_ORIGINS(선택, 쉼표 구분)에 등록된 Origin만 허용하고 빈 값은 제거한다.
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys(
+    _env_list("FRONTEND_BASE_URL") + _env_list("CORS_ALLOWED_ORIGINS")
+))
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'config.urls'
 
@@ -86,11 +102,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dearvoice_db',
+        # [OSS] 원본의 하드코딩 값을 기본값으로 유지하고 환경변수로 재정의 가능하게 함
+        'NAME': os.getenv('DB_NAME', 'dearvoice_db'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
-        'PORT': '3306',
+        'PORT': os.getenv('DB_PORT', '3306'),
     }
 }
 
@@ -128,14 +145,15 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
@@ -165,8 +183,9 @@ REST_FRAMEWORK = {
 NCP_CLIENT_ID = os.getenv("NCP_CLIENT_ID")
 NCP_CLIENT_SECRET = os.getenv("NCP_CLIENT_SECRET")
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# [OSS] 원본의 localhost 값을 기본값으로 유지하고 환경변수로 재정의 가능하게 함
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -185,6 +204,4 @@ CELERY_BEAT_SCHEDULE = {
 ACCOUNT_LOGIN_METHOD = "email"
 ACCOUNT_SIGNUP_FIELDS = ["email", "nickname", "password1*", "password2*"]
 
-REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
-}
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL")
