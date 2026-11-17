@@ -1,75 +1,93 @@
-from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import RetrieveAPIView
+import logging
 from .models import SkyVoiceLetter
 from .serializers import SkyVoiceLetterSerializer
 from .services import make_ai_reply
-from letters.views import clova_speech_to_text
-from .utils import generate_presigned_url
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from .tasks import generate_ai_reply_async
+from letters.utils import clova_stt_from_file
 
+
+logger = logging.getLogger(__name__)
+
+# SkyVoice 편지 생성 (STT + AI 답장 포함)
 class SkyVoiceLetterCreateView(generics.CreateAPIView):
     serializer_class = SkyVoiceLetterSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         letter = serializer.save(user=self.request.user)
+        audio_url = letter.audio_url
 
-        if letter.voice_file:
-            audio_file_url = generate_presigned_url(letter.voice_file)
-            content_text = clova_speech_to_text(audio_file_url)
-            letter.content_text = content_text
+        transcript = ""
+        if audio_url:
+            transcript = clova_stt_from_file(audio_url)
+            if transcript:
+                letter.content_text = transcript
+            else:
+                logger.warning(f"[STT 실패] letter.id={letter.id}, audio_url={audio_url}")
+                letter.content_text = "[음성 텍스트 변환 실패]"
             letter.save()
-        try:
-            make_ai_reply(letter)
-        except Exception as e:
-            print(f"[SkyVoice] AI 답변 생성 실패: {e}")
+        if transcript:
+            logger.info(f"[디버깅] Letter {letter.id}에 대해 AI 답장 생성 task 등록 시도")
+            print(f"Celery 태스크 등록: {letter.id}")
+            generate_ai_reply_async.delay(letter.id)
 
-class SkyVoiceLetterAIReplyView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk):
-        try:
-            letter = SkyVoiceLetter.objects.get(pk=pk)
-        except SkyVoiceLetter.DoesNotExist:
-            return Response({'detail': 'Letter not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if letter.reply_text or letter.reply_voice_file:
-            return Response({'detail': '이미 답신이 등록된 편지입니다.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            make_ai_reply(letter)
-        except Exception as e:
-            return Response({'detail': f'AI 답신 생성 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response(SkyVoiceLetterSerializer(letter).data, status=status.HTTP_200_OK)
-
+# S3 URL 기반 STT 테스트용 API
 @method_decorator(csrf_exempt, name='dispatch')
 class SkyVoiceTranscribeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        audio_file = request.FILES.get('audio_file')
-        if not audio_file:
-            return Response({"error": "audio_file이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+        audio_url = request.data.get('audio_url')
+        if not audio_url:
+            return Response({"error": "audio_url이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            audio_file.seek(0)
-            transcript = clova_speech_to_text(audio_file)
+            transcript = clova_stt_from_file(audio_url)
             return Response({
                 "transcript": transcript,
                 "success": True
             }, status=status.HTTP_200_OK)
-
         except Exception as e:
+            logger.error(f"[STT 변환 오류] audio_url={audio_url}, error={str(e)}")
             return Response({
                 "error": f"텍스트 변환 실패: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# 편지 상세 조회 (본인만 조회 가능)
 class SkyVoiceLetterDetailView(generics.RetrieveAPIView):
     queryset = SkyVoiceLetter.objects.all()
     serializer_class = SkyVoiceLetterSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.user != self.request.user:
+            raise PermissionDenied("본인의 편지만 조회할 수 있습니다.")
+        return obj
+
+# 내가 보낸 편지 목록 조회
+class SkyVoiceLetterListView(generics.ListAPIView):
+    serializer_class = SkyVoiceLetterSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SkyVoiceLetter.objects.filter(user=self.request.user).order_by('-created_at')
+
+#비회원 상세 조회 
+class PublicSkyVoiceLetterDetailView(RetrieveAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = SkyVoiceLetterSerializer
+    queryset = SkyVoiceLetter.objects.all()
+
+    def get_object(self):
+        pk = self.kwargs.get("pk")
+        return get_object_or_404(SkyVoiceLetter, pk=pk)

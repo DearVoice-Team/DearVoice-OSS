@@ -1,22 +1,65 @@
+# letters/tasks.py
 from celery import shared_task
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Letter
+from .models import Letter, LetterRecipient
+import logging
+
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
+
+def _is_valid_email(email):
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
 
 @shared_task
 def send_scheduled_letters():
     now = timezone.now()
     letters = Letter.objects.filter(is_sent=False, scheduled_at__lte=now)
+
     for letter in letters:
-        if letter.receiver_email:
-            send_mail(
-                subject='DearVoice에서 도착한 편지 알림',
-                message=f"{letter.sender.email} 님이 보내신 편지가 도착했습니다.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[letter.receiver_email],
-                fail_silently=False,
-            )
-        letter.is_sent = True
-        letter.save()
-        print(f"[예약발송] Letter from {letter.sender.email} 예약발송 및 이메일 알림 완료!")
+        send_letter_task(letter.id)
+
+@shared_task
+def send_letter_task(letter_id):
+    try:
+        letter = Letter.objects.get(id=letter_id)
+        recipients = letter.recipients.all()
+        letter_sent = False
+
+        for recipient in recipients:
+            email = recipient.email
+            if not email:
+                logger.warning(f"[메일] 이메일 없음, 건너뜀 (Letter {letter_id})")
+                continue
+
+            if not _is_valid_email(email):
+                logger.warning(f"[메일] 잘못된 이메일 형식, 건너뜀: {email} (Letter {letter_id})")
+                continue
+
+            try:
+                letter_url = f"{settings.FRONTEND_BASE_URL}/share/{letter.id}"
+                send_mail(
+                    subject="DearVoice에서 편지가 도착했습니다",
+                    message=f"{letter.sender.email} 님이 보낸 음성 편지가 도착했습니다.\n확인 링크: {letter_url}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+                logger.info(f"[편지 전송] {email} 에게 편지 발송 완료!")
+                letter_sent = True
+            except Exception as e:
+                logger.error(f"[전송 오류] {email} 전송 실패: {e}")
+
+        if letter_sent:
+            letter.is_sent = True
+            letter.save()
+
+    except Letter.DoesNotExist:
+        logger.error(f"[전송 오류] Letter {letter_id} 존재하지 않음")
