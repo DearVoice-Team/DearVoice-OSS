@@ -1,0 +1,25 @@
+# 의존성·빌드 결과: 컨테이너 안에서 npm ci, npm run build로 새로 만든다
+node_modules
+dist
+dist-ssr
+
+# 비밀값: 환경변수는 빌드할 때 따로 넘긴다
+.env
+.env.*
+*.local
+!.env.example
+
+# Git·편집기·OS 파일
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# 로그
+logs
+*.log
+
+# Docker 설정 파일
+Dockerfile*
+.dockerignore
