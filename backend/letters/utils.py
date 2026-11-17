@@ -8,6 +8,7 @@ import ffmpeg
 import tempfile
 import requests
 from letters.models import Letter
+from common.s3 import read_object
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,9 +20,8 @@ def convert_webm_to_wav(file_url):
     print(f"[DEBUG] 입력 파일 경로: {input_file.name}")
     print(f"[DEBUG] 출력 파일 경로: {output_file.name}")
 
-    # S3에서 webm 파일 다운로드
-    res = requests.get(file_url)
-    input_file.write(res.content)
+    # S3 API로 webm 파일 읽기 (비공개 버킷이라 일반 주소로는 받을 수 없음)
+    input_file.write(read_object(file_url))
     input_file.close()
 
     # ffmpeg로 변환 (덮어쓰기 허용)
