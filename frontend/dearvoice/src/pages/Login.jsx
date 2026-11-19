@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import "../styles/Login.css";
 import axiosInstance from "../apis/axiosInstance";
 import { authStorage } from "../utils/authStorage";
@@ -9,6 +10,7 @@ const Login = () => {
     user_id: "",
     password: "",
   });
+
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -18,6 +20,7 @@ const Login = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // 일반 로그인
   const handleLogin = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -29,10 +32,18 @@ const Login = () => {
     }
 
     try {
-      const response = await axiosInstance.post("/api/auth/login/", form, {
-        headers: { "Content-Type": "application/json" }
-      });
-      authStorage.setTokens(response.data.access, response.data.refresh);
+      const response = await axiosInstance.post(
+        "/api/auth/login/",
+        form,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      authStorage.setTokens(
+        response.data.access,
+        response.data.refresh
+      );
 
       navigate("/home");
     } catch (err) {
@@ -40,6 +51,35 @@ const Login = () => {
       setModalType("error");
       setShowModal(true);
     }
+  };
+
+  // 구글 로그인 성공
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setMessage("");
+
+      const response = await axiosInstance.post(
+        "/api/auth/login/google/",
+        {
+          id_token: credentialResponse.credential,
+        }
+      );
+
+      authStorage.setTokens(
+        response.data.access,
+        response.data.refresh
+      );
+
+      navigate("/home");
+    } catch (err) {
+      console.error("구글 로그인 에러:", err);
+      setMessage("구글 로그인에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 구글 로그인 실패
+  const handleGoogleError = () => {
+    setMessage("구글 로그인에 실패했습니다. 다시 시도해주세요.");
   };
 
   const handleModalConfirm = () => {
@@ -58,6 +98,7 @@ const Login = () => {
     <div className="mobile-wrapper">
       <div className="login-container">
         <div className="login-title">로그인</div>
+
         <div className="login-box">
           <div className="login-row">
             <div className="login-field-id">
@@ -93,7 +134,9 @@ const Login = () => {
             >
               회원가입 바로가기
             </button>
+
             <span className="link-separator">|</span>
+
             <button
               type="button"
               className="link-btn"
@@ -105,9 +148,19 @@ const Login = () => {
         </div>
 
         <button className="login-submit-btn" onClick={handleLogin}>
-        로그인
-      </button>
+          로그인
+        </button>
 
+        {/* 구글 로그인 */}
+        <div style={{ marginTop: "20px" }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            text="signin_with"
+            shape="rectangular"
+            width="280"
+          />
+        </div>
       </div>
 
       {message && (
@@ -116,7 +169,6 @@ const Login = () => {
         </div>
       )}
 
-      {/* 로그인 실패 모달만 */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-container">
@@ -127,7 +179,11 @@ const Login = () => {
                   ? "아이디와 비밀번호를 모두 입력해주세요."
                   : "아이디 또는 비밀번호를 확인해주세요."}
               </p>
-              <button className="modal-btn" onClick={handleModalConfirm}>
+
+              <button
+                className="modal-btn"
+                onClick={handleModalConfirm}
+              >
                 확인
               </button>
             </div>
