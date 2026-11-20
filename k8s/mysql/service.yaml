@@ -1,0 +1,17 @@
+# Headless Service: StatefulSet 파드에 고정 DNS 이름(mysql-0.mysql)을 붙여줍니다.
+# 클러스터 안에서는 DB_HOST=mysql 로 접속합니다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/part-of: dearvoice
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
