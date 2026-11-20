@@ -1,0 +1,27 @@
+# 비밀이 아닌 backend 설정값만 둡니다. (커밋해도 되는 값)
+# 비밀 값은 backend-secret 에 둡니다. (backend-secret.example.yaml 참고)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: dearvoice
+data:
+  DEBUG: "False"
+  # backend = 클러스터 내부 Service 이름 (CD 담당 Deployment 와 맞춰야 함)
+  ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: "dearvoice_db"
+  # Ingress 로 접속하는 주소 (로컬: http://localhost). 끝에 / 를 붙이지 않습니다.
+  FRONTEND_BASE_URL: "http://localhost"
+  CORS_ALLOWED_ORIGINS: ""
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+  AWS_S3_REGION_NAME: "ap-northeast-2"
+  AWS_STORAGE_BUCKET_NAME: "your-bucket-name"
+  # 공개 클라이언트 ID (프론트 VITE_GOOGLE_CLIENT_ID 와 같은 값)
+  GOOGLE_CLIENT_ID: "your-client-id.apps.googleusercontent.com"
+  # google-tts-key Secret 을 이 경로에 파일로 마운트합니다. (CD 담당 Deployment 에서)
+  GOOGLE_APPLICATION_CREDENTIALS: "/var/secrets/google/key.json"

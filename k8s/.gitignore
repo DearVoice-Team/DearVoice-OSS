@@ -1,0 +1,3 @@
+# 실제 값이 들어간 Secret 매니페스트는 커밋하지 않습니다. (*.example.yaml 만 커밋)
+*secret*.yaml
+!*secret*.example.yaml
