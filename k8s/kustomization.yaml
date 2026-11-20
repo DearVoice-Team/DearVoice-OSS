@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: dearvoice
 
 # Secret 은 실제 값이 들어가므로 여기에 넣지 않고 따로 적용합니다. (README 참고)
-# Ingress 는 설계안 단계라 아직 포함하지 않습니다.
+# Ingress Controller(Traefik) 는 클러스터 전체에 한 번만 설치하므로 따로 적용합니다. (README 참고)
 resources:
   - namespace.yaml
   - config/backend-configmap.yaml
@@ -11,3 +11,4 @@ resources:
   - mysql/statefulset.yaml
   - redis/service.yaml
   - redis/statefulset.yaml
+  - ingress/ingress.yaml

@@ -1,8 +1,9 @@
-# [설계안] 아직 적용하지 않습니다. frontend / backend Service 가 생기면 적용합니다.
-# - ingressClassName 은 설치한 Ingress Controller 에 맞춰 바꿉니다. (k8s/README.md 참고)
+# http://localhost 로 들어온 요청을 경로에 따라 backend / frontend 로 나눕니다.
+# - ingressClassName: traefik = k8s/ingress-controller/traefik.yaml 의 Controller 가 처리
 # - Service 이름/포트는 CD 담당 Deployment 와 맞춰야 합니다.
 #     frontend: port 80 (nginx), backend: port 8000 (gunicorn)
 # - 경로는 앞부분 기준(Prefix)으로 매칭하며, 더 긴 경로가 먼저 선택됩니다.
+# - 클라우드로 옮길 때는 rules 에 host: <도메인> 과 tls 를 추가합니다.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
