@@ -1,0 +1,106 @@
+# [테스트용] Ingress 라우팅 확인을 위한 임시 backend / frontend 앱입니다.
+# - 실제 이미지 대신 요청 정보를 그대로 보여주는 traefik/whoami 를 씁니다.
+# - Service 이름·포트는 실제 앱과 같게 맞췄습니다. (backend:8000, frontend:80)
+# - 실제 backend / frontend Deployment 를 배포하기 전에 꼭 지워 주세요.
+#     kubectl delete -f k8s/examples/dummy-apps.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dearvoice
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: dearvoice
+    dearvoice/dummy: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+        app.kubernetes.io/part-of: dearvoice
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami:v1.10
+          args: ["--port", "8000", "--name", "dummy-backend"]
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: dearvoice
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: dearvoice
+    dearvoice/dummy: "true"
+spec:
+  selector:
+    app.kubernetes.io/name: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: dearvoice
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: dearvoice
+    dearvoice/dummy: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/part-of: dearvoice
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami:v1.10
+          args: ["--port", "80", "--name", "dummy-frontend"]
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: dearvoice
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: dearvoice
+    dearvoice/dummy: "true"
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
