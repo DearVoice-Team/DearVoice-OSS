@@ -1,4 +1,4 @@
-FROM node:26
+FROM node:26 AS build
 
 WORKDIR /app
 
@@ -11,5 +11,8 @@ ARG VITE_SERVER_API_URL=""
 ARG VITE_GOOGLE_CLIENT_ID=""
 RUN npm run build
 
-EXPOSE 4173
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173"]
+FROM nginx:stable-alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
