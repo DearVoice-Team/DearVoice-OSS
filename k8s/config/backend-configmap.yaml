@@ -19,7 +19,7 @@ data:
   CORS_ALLOWED_ORIGINS: ""
   CELERY_BROKER_URL: "redis://redis:6379/0"
   CELERY_RESULT_BACKEND: "redis://redis:6379/0"
-  AWS_S3_REGION_NAME: "ap-northeast-2"
+  AWS_S3_REGION_NAME: "ap-southeast-2"
   AWS_STORAGE_BUCKET_NAME: "your-bucket-name"
   # 공개 클라이언트 ID (프론트 VITE_GOOGLE_CLIENT_ID 와 같은 값)
   GOOGLE_CLIENT_ID: "your-client-id.apps.googleusercontent.com"
