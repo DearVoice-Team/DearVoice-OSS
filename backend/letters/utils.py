@@ -1,74 +1,100 @@
-import os
-import requests
+import json
 import logging
-from dotenv import load_dotenv
-from django.core.mail import send_mail
-from django.conf import settings
-import ffmpeg
+import os
 import tempfile
+
+import ffmpeg
 import requests
+from django.conf import settings
+from django.core.mail import send_mail
+
 from letters.models import Letter
 from common.s3 import read_object
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 
+# ClovaSpeech 장문 인식은 sync 모드에서도 변환이 끝날 때까지 응답을 기다리므로 넉넉하게 잡는다.
+CLOVA_SPEECH_TIMEOUT = 120  # 초
+
+
 def convert_webm_to_wav(file_url):
-    input_file = tempfile.NamedTemporaryFile(suffix=".webm", delete=False)
+    """S3의 webm 파일을 16kHz 모노 wav로 변환하고 wav 파일 경로를 돌려준다.
+
+    ClovaSpeech 지원 형식에 WebM이 없어서 wav로 바꿔서 보낸다.
+    돌려받은 wav 파일은 호출한 쪽에서 지워야 한다.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as input_file:
+        # S3 API로 webm 파일 읽기 (비공개 버킷이라 일반 주소로는 받을 수 없음)
+        input_file.write(read_object(file_url))
     output_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    output_file.close()
 
-    print(f"[DEBUG] 입력 파일 경로: {input_file.name}")
-    print(f"[DEBUG] 출력 파일 경로: {output_file.name}")
-
-    # S3 API로 webm 파일 읽기 (비공개 버킷이라 일반 주소로는 받을 수 없음)
-    input_file.write(read_object(file_url))
-    input_file.close()
-
-    # ffmpeg로 변환 (덮어쓰기 허용)
     try:
-        ffmpeg.input(input_file.name).output(output_file.name, ac=1, ar=16000).overwrite_output().run()
-    except Exception as e:
-        print(f"[FFMPEG ERROR]: {e}")
+        (
+            ffmpeg.input(input_file.name)
+            .output(output_file.name, ac=1, ar=16000)
+            .overwrite_output()
+            .run(quiet=True)
+        )
+    except Exception:
+        os.remove(output_file.name)
         raise
+    finally:
+        os.remove(input_file.name)
 
     return output_file.name
 
-CLOVA_API_URL = "https://clovaspeech-gw.ncloud.com/recognizer/upload?language=ko-KR"
-CLOVA_API_KEY = os.getenv("CLOVA_API_KEY", "")
 
-HEADERS = {
-    "X-CLOVASPEECH-API-KEY": CLOVA_API_KEY
-}
+def request_clova_speech(wav_path):
+    """ClovaSpeech 장문 인식(로컬 파일 업로드, sync)으로 wav 파일을 보내고 인식된 텍스트를 돌려준다."""
+    invoke_url = (settings.CLOVA_SPEECH_INVOKE_URL or "").rstrip("/")
+    secret_key = settings.CLOVA_SPEECH_SECRET_KEY
+    if not invoke_url or not secret_key:
+        raise RuntimeError("CLOVA_SPEECH_INVOKE_URL, CLOVA_SPEECH_SECRET_KEY 환경변수가 필요합니다.")
+
+    params = {
+        "language": "ko-KR",
+        "completion": "sync",
+        "wordAlignment": False,
+        "fullText": True,
+        "diarization": {"enable": False},
+    }
+    headers = {
+        "Accept": "application/json;UTF-8",
+        "X-CLOVASPEECH-API-KEY": secret_key,
+    }
+
+    with open(wav_path, "rb") as wav_file:
+        files = {
+            "media": wav_file,
+            "params": (None, json.dumps(params), "application/json"),
+        }
+        response = requests.post(
+            f"{invoke_url}/recognizer/upload",
+            headers=headers,
+            files=files,
+            timeout=CLOVA_SPEECH_TIMEOUT,
+        )
+    response.raise_for_status()
+
+    result = response.json()
+    if result.get("result") != "COMPLETED":
+        raise RuntimeError(f"ClovaSpeech 인식 실패: {result.get('result')} {result.get('message')}")
+    return result.get("text", "")
+
 
 def clova_stt_from_file(file_url):
+    """S3 음성 파일을 텍스트로 변환한다. 실패하면 None을 돌려준다."""
+    wav_path = None
     try:
         wav_path = convert_webm_to_wav(file_url)
-
-        print(f"[DEBUG] 변환된 wav 파일 경로: {wav_path}")
-        print(f"[DEBUG] 파일 크기: {os.path.getsize(wav_path)} bytes")
-
-        
-        with open(wav_path, 'rb') as wav_file:
-            audio_data = wav_file.read()
-
-        # ✅ 동기 API 엔드포인트
-        CLOVA_API_URL = "https://naveropenapi.apigw.ntruss.com/recog/v1/stt?lang=Kor"
-
-        headers = {
-            "X-NCP-APIGW-API-KEY-ID": settings.NCP_CLIENT_ID,
-            "X-NCP-APIGW-API-KEY": settings.NCP_CLIENT_SECRET,
-            "Content-Type": "application/octet-stream",
-        }
-        
-        response = requests.post(CLOVA_API_URL, headers=headers, data=audio_data)
-        print("[DEBUG] Clova 응답 상태코드:", response.status_code)
-        print("[DEBUG] Clova 응답 본문:", response.text)
-        response.raise_for_status()
-        return response.json().get("text")
-    
+        return request_clova_speech(wav_path)
     except Exception as e:
         logger.error(f"[STT 변환 실패]: {e}")
         return None
+    finally:
+        if wav_path and os.path.exists(wav_path):
+            os.remove(wav_path)
 
 
 def send_letter_email(email, letter_id):
