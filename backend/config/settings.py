@@ -17,8 +17,8 @@ def _env_list(name, default=""):
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
 
-CLOVA_CLIENT_ID = os.getenv("CLOVA_CLIENT_ID")
-CLOVA_CLIENT_SECRET = os.getenv("CLOVA_CLIENT_SECRET")
+CLOVA_SPEECH_INVOKE_URL = os.getenv("CLOVA_SPEECH_INVOKE_URL")
+CLOVA_SPEECH_SECRET_KEY = os.getenv("CLOVA_SPEECH_SECRET_KEY")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -179,9 +179,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
-NCP_CLIENT_ID = os.getenv("NCP_CLIENT_ID")
-NCP_CLIENT_SECRET = os.getenv("NCP_CLIENT_SECRET")
 
 # [OSS] 원본의 localhost 값을 기본값으로 유지하고 환경변수로 재정의 가능하게 함
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')

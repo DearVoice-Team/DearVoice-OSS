@@ -50,17 +50,16 @@ class SkyVoiceTranscribeView(APIView):
         if not audio_url:
             return Response({"error": "audio_url이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            transcript = clova_stt_from_file(audio_url)
+        transcript = clova_stt_from_file(audio_url)
+        if not transcript:
+            logger.error(f"[STT 변환 오류] audio_url={audio_url}")
             return Response({
-                "transcript": transcript,
-                "success": True
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"[STT 변환 오류] audio_url={audio_url}, error={str(e)}")
-            return Response({
-                "error": f"텍스트 변환 실패: {str(e)}"
+                "error": "텍스트 변환 실패"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "transcript": transcript,
+            "success": True
+        }, status=status.HTTP_200_OK)
 
 # 편지 상세 조회 (본인만 조회 가능)
 class SkyVoiceLetterDetailView(generics.RetrieveAPIView):
