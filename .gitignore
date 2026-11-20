@@ -45,3 +45,8 @@ Thumbs.db
 # Kubernetes and deployment credentials
 kubeconfig
 .kube/
+
+# Google Cloud credentials
+*credentials*.json
+*service-account*.json
+dearvoice-*.json

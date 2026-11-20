@@ -46,12 +46,12 @@ ci: Jenkinsfile CI 스테이지 작성
 
 ## PR 규칙
 
-- **제목 형식**: `[type] #이슈번호 작업 내용`
-  - 예: `[feat] #12 GitHub 협업 규칙 파일 추가`
+- **제목 형식**: `[type] 작업 내용`
+  - 예: `[feat] GitHub 협업 규칙 파일 추가`
 - **base 브랜치**: 항상 `develop`
 - **Merge 조건**: 최소 1명 Approve 후 Merge
 - **Merge 후**: 작업 브랜치 삭제
-- **이슈 자동 닫기**: PR 본문에 `Closes #이슈번호` 작성
+- **이슈 연결**: PR 본문에 `Closes #이슈번호` 작성 → Merge 시 이슈 자동 닫힘
 
 ---
 
@@ -69,13 +69,15 @@ ci: Jenkinsfile CI 스테이지 작성
 
 - `.env` 파일
 - API 키, 비밀번호
-- GCP 서비스 계정 JSON 파일 (`*.json` 인증 파일)
+- GCP 서비스 계정 JSON 파일 (인증 파일)
 - AWS 자격증명 파일
 
 `.gitignore`에 반드시 추가하세요:
 ```
 .env
-*.json
+*credentials*.json
+*service-account*.json
+dearvoice-*.json
 ```
 
 ---
@@ -87,6 +89,6 @@ ci: Jenkinsfile CI 스테이지 작성
 2. 브랜치 생성: git checkout -b feature/번호-작업내용
 3. 작업 후 커밋: git commit -m "feat: 작업 내용"
 4. Push: git push origin feature/번호-작업내용
-5. PR 생성 (base: develop), 제목: [feat] #번호 작업 내용
+5. PR 생성 (base: develop), 제목: [feat] 작업 내용
 6. 리뷰 → Approve → Merge → 브랜치 삭제
 ```
