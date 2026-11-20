@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from "../apis/axiosInstance";
 import "../styles/FindPassword.css";
 import letterlogo from "../assets/images/letter-before.png"
 
@@ -22,12 +23,12 @@ const FindPassword = () => {
     setMessage("");
     
     try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/check-user-email/`, {
+      await axios.post(`${API_BASE_URL}/check-user-email/`, {
         user_id: form.user_id,
         email: form.email
       });
       
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/send-password-reset/`, {
+      await axios.post(`${API_BASE_URL}/send-password-reset/`, {
         user_id: form.user_id,
         email: form.email
       });
