@@ -1,8 +1,10 @@
 import axios from "axios";
 import { authStorage } from "../utils/authStorage";
 
+export const API_BASE_URL = import.meta.env.VITE_SERVER_API_URL ?? "";
+
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_SERVER_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -44,7 +46,7 @@ axiosInstance.interceptors.response.use(
       const refreshToken = authStorage.getRefreshToken();
       if (refreshToken) {
         try {
-          const response = await axios.post(`${import.meta.env.VITE_SERVER_API_URL}/api/auth/refresh/`, {
+          const response = await axios.post(`${API_BASE_URL}/api/auth/refresh/`, {
             refresh: refreshToken
           });
           
