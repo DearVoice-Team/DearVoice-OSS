@@ -10,6 +10,10 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/skyvoice': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
     port: 5173,
     hmr: {
