@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dearvoice
+
+# Secret 은 실제 값이 들어가므로 여기에 넣지 않고 따로 적용합니다. (README 참고)
+# Ingress 는 설계안 단계라 아직 포함하지 않습니다.
+resources:
+  - namespace.yaml
+  - config/backend-configmap.yaml
+  - mysql/service.yaml
+  - mysql/statefulset.yaml
+  - redis/service.yaml
+  - redis/statefulset.yaml
