@@ -1,0 +1,45 @@
+# [설계안] 아직 적용하지 않습니다. frontend / backend Service 가 생기면 적용합니다.
+# - ingressClassName 은 설치한 Ingress Controller 에 맞춰 바꿉니다. (k8s/README.md 참고)
+# - Service 이름/포트는 CD 담당 Deployment 와 맞춰야 합니다.
+#     frontend: port 80 (nginx), backend: port 8000 (gunicorn)
+# - 경로는 앞부분 기준(Prefix)으로 매칭하며, 더 긴 경로가 먼저 선택됩니다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dearvoice
+  namespace: dearvoice
+  labels:
+    app.kubernetes.io/part-of: dearvoice
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /skyvoice
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
