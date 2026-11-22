@@ -15,8 +15,12 @@ k8s/
 │   └── mysql-secret.example.yaml    # MySQL 계정 예시 (복사해서 사용)
 ├── mysql/                      # MySQL 8.0 StatefulSet + Service (PVC 5Gi)
 ├── redis/                      # Redis 7 StatefulSet + Service (PVC 1Gi)
-└── ingress/
-    └── ingress.proposal.yaml   # Ingress 라우팅 설계안 (아직 적용 안 함)
+├── ingress/
+│   └── ingress.yaml            # 경로별 라우팅 규칙 (/api 등 → backend, / → frontend)
+├── ingress-controller/
+│   └── traefik.yaml            # Traefik Ingress Controller (클러스터에 한 번만 설치)
+└── examples/
+    └── dummy-apps.yaml         # [테스트용] 라우팅 확인용 임시 backend / frontend
 ```
 
 ## 용어 한 줄 정리
@@ -40,7 +44,10 @@ k8s/
 ## 배포 순서
 
 ```powershell
-# 1) 네임스페이스, ConfigMap, MySQL, Redis 적용
+# 0) Ingress Controller(Traefik) 설치 (클러스터마다 처음 한 번만)
+kubectl apply -f k8s/ingress-controller/traefik.yaml
+
+# 1) 네임스페이스, ConfigMap, MySQL, Redis, Ingress 적용
 kubectl apply -k k8s
 
 # 2) Secret 만들기: 예시 파일을 복사한 뒤 값을 채웁니다. (복사본은 git 에 올라가지 않음)
@@ -100,7 +107,7 @@ volumes:
     secret: { secretName: google-tts-key }
 ```
 
-## Ingress 라우팅 설계안
+## Ingress 라우팅
 
 ```
 브라우저 ── http://localhost ──▶ Ingress Controller
@@ -114,15 +121,35 @@ volumes:
   프론트의 `VITE_SERVER_API_URL` 은 같은 주소(로컬: `http://localhost`)로 두면 됩니다.
 - Django `urls.py` 가 `/api/`, `/skyvoice/`, `/admin/` 로 시작하므로 경로를 잘라내지(rewrite) 않습니다.
 - 정적 파일·미디어는 S3 에서 바로 내려주므로 Ingress 경로가 필요 없습니다.
-- Ingress Controller 는 **Traefik** 을 제안합니다. 많이 쓰이던 ingress-nginx 는 2026년 3월에
+- Ingress Controller 는 **Traefik** 을 씁니다. 많이 쓰이던 ingress-nginx 는 2026년 3월에
   유지보수가 종료되었기 때문입니다. Ingress YAML 은 표준이라 Controller 를 바꿔도
   `ingressClassName` 한 줄만 고치면 됩니다.
+- Docker Desktop 에서는 Traefik 의 LoadBalancer Service 가 내 PC 의 `localhost:80` 으로 열립니다.
+  80 번 포트를 다른 프로그램이 쓰고 있으면 열리지 않으니 먼저 꺼 주세요.
+- Traefik 은 Prefix 를 글자 기준으로 비교해서 `/apix` 같은 경로도 backend 로 갑니다.
+  프론트에 `/api`, `/skyvoice`, `/admin` 으로 시작하는 화면 경로만 만들지 않으면 문제없습니다.
 - 클라우드로 옮길 때는 `rules` 에 `host: <도메인>` 과 `tls` 를 추가합니다.
-- `backend`, `frontend` Service 이름과 포트는 CD 담당자와 맞춘 뒤 적용합니다.
+- `backend`, `frontend` Service 이름과 포트는 CD 담당 Deployment 와 맞춰야 합니다.
+
+### 임시 앱으로 라우팅 확인하기
+
+실제 backend / frontend 이미지가 없어도 요청 정보를 보여주는 임시 앱으로 라우팅을 확인할 수 있습니다.
+
+```powershell
+kubectl apply -f k8s/examples/dummy-apps.yaml
+curl.exe http://localhost/            # Name: dummy-frontend
+curl.exe http://localhost/api/        # Name: dummy-backend
+curl.exe http://localhost/skyvoice/   # Name: dummy-backend
+curl.exe http://localhost/admin/      # Name: dummy-backend
+
+# 실제 Deployment 를 배포하기 전에 꼭 지웁니다. (같은 이름이라 겹칩니다)
+kubectl delete -f k8s/examples/dummy-apps.yaml
+```
 
 ## 정리(삭제)
 
 ```powershell
 kubectl delete -k k8s                       # 리소스 삭제 (PVC 는 남음)
+kubectl delete -f k8s/ingress-controller/traefik.yaml   # Traefik 삭제
 kubectl -n dearvoice delete pvc --all       # DB 데이터까지 지우려면 (되돌릴 수 없음)
 ```
