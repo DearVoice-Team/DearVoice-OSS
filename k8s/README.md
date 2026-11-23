@@ -13,6 +13,8 @@ k8s/
 │   ├── backend-configmap.yaml       # 비밀이 아닌 backend 설정
 │   ├── backend-secret.example.yaml  # backend 비밀 값 예시 (복사해서 사용)
 │   └── mysql-secret.example.yaml    # MySQL 계정 예시 (복사해서 사용)
+├── scripts/
+│   └── create-secrets.ps1      # backend/.env 로 실제 Secret 만들기
 ├── mysql/                      # MySQL 8.0 StatefulSet + Service (PVC 5Gi)
 ├── redis/                      # Redis 7 StatefulSet + Service (PVC 1Gi)
 ├── ingress/
@@ -50,22 +52,35 @@ kubectl apply -f k8s/ingress-controller/traefik.yaml
 # 1) 네임스페이스, ConfigMap, MySQL, Redis, Ingress 적용
 kubectl apply -k k8s
 
-# 2) Secret 만들기: 예시 파일을 복사한 뒤 값을 채웁니다. (복사본은 git 에 올라가지 않음)
-Copy-Item k8s/config/mysql-secret.example.yaml k8s/config/mysql-secret.yaml
-Copy-Item k8s/config/backend-secret.example.yaml k8s/config/backend-secret.yaml
-#    → 두 파일을 열어 값 채우기 (DB_USER/DB_PASSWORD 는 MYSQL_USER/MYSQL_PASSWORD 와 같게)
-kubectl apply -f k8s/config/mysql-secret.yaml
-kubectl apply -f k8s/config/backend-secret.yaml
+# 2) backend/.env 로 실제 Secret 만들기 (mysql-secret, backend-secret, google-tts-key)
+powershell -ExecutionPolicy Bypass -File k8s/scripts/create-secrets.ps1
 
-# 3) Google TTS 키 파일은 파일 그대로 Secret 으로 만듭니다.
-kubectl -n dearvoice create secret generic google-tts-key --from-file=key.json=<키 파일 경로>
-
-# 4) 상태 확인 (mysql-0, redis-0 이 Running, READY 1/1 이면 성공)
+# 3) 상태 확인 (mysql-0, redis-0 이 Running, READY 1/1 이면 성공)
 kubectl -n dearvoice get pods,pvc,svc
 ```
 
 > Secret 을 1번보다 늦게 만들면 MySQL 파드가 처음에 `CreateContainerConfigError` 로 기다립니다.
 > Secret 을 만들면 자동으로 다시 시작되니 걱정하지 않아도 됩니다.
+
+### Secret 만들기 스크립트 (`scripts/create-secrets.ps1`)
+
+`backend/.env` 를 읽어서 Secret 3개를 만듭니다. 비밀 값은 화면에 출력하지 않고 파일로도 남기지 않습니다.
+
+| Secret | 내용 |
+| --- | --- |
+| `mysql-secret` | MySQL 계정. **이미 있으면 그대로 둡니다.** 없으면 비밀번호를 무작위로 만듭니다. |
+| `backend-secret` | `.env` 의 비밀 값 + `mysql-secret` 의 DB 계정 (`DB_USER`, `DB_PASSWORD`) |
+| `google-tts-key` | `.env` 의 `GOOGLE_APPLICATION_CREDENTIALS` 경로에 있는 키 파일 |
+
+- `.env` 의 `DB_USER` / `DB_PASSWORD` 는 내 PC 의 MySQL 용이라 쓰지 않습니다.
+  클러스터 안 MySQL 계정은 `mysql-secret` 이 기준입니다.
+- 다시 실행해도 안전합니다. `.env` 를 고쳤으면 다시 실행한 뒤 backend 를 재시작합니다.
+  `kubectl -n dearvoice rollout restart deployment/backend`
+- 예시 값(`your-...`, `change-me`) 그대로이거나 빠진 키는 `[경고]` 로 알려줍니다.
+- MySQL 은 **처음 시작할 때만** 계정을 만듭니다. `mysql-secret` 을 지우고 새로 만들면
+  DB 안의 비밀번호와 달라져 접속이 안 됩니다. 처음부터 다시 하려면 PVC 까지 지워야 합니다.
+- 스크립트 없이 직접 만들고 싶으면 `config/*-secret.example.yaml` 을 복사해서 값을 채운 뒤
+  `kubectl apply -f` 로 적용해도 됩니다. (복사본은 git 에 올라가지 않음)
 
 ## 연결 확인
 
