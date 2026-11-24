@@ -1,0 +1,21 @@
+name: dearvoice
+
+# 백엔드(mysql, redis, backend, celery)는 backend/docker-compose.yml을 그대로 불러와 사용
+include:
+  - backend/docker-compose.yml
+
+services:
+  frontend:
+    image: dearvoice-frontend
+    build:
+      context: ./frontend/dearvoice
+      args:
+        # Google 로그인용 공개 값, 없으면 빈 값으로 빌드
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+        # backend 컨테이너가 다시 만들어지면 frontend(nginx)도 재시작해 예전 IP로 인한 502 방지
+        restart: true
