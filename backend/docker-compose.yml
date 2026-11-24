@@ -21,7 +21,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      start_period: 20s 
       interval: 5s
       timeout: 5s
       retries: 20
@@ -43,13 +44,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --timeout 150"
-
+    command: sh -c "python manage.py migrate && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --timeout 150"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), 2)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+      
   celery-worker:
     <<: *app
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     command: celery -A config worker -l info
 
   celery-beat:
