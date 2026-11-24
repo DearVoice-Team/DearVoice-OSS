@@ -57,3 +57,6 @@ letters/audio/
 uploads/
 *.sql
 *.dump
+
+secrets/
+dearvoice-*.json
