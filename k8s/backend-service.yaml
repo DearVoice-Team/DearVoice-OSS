@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: dearvoice
+  labels:
+    app: backend
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: backend
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

@@ -20,8 +20,8 @@ data:
   CELERY_BROKER_URL: "redis://redis:6379/0"
   CELERY_RESULT_BACKEND: "redis://redis:6379/0"
   AWS_S3_REGION_NAME: "ap-southeast-2"
-  AWS_STORAGE_BUCKET_NAME: "your-bucket-name"
+  AWS_STORAGE_BUCKET_NAME: "dearvoice-oss-2026"
   # 공개 클라이언트 ID (프론트 VITE_GOOGLE_CLIENT_ID 와 같은 값)
-  GOOGLE_CLIENT_ID: "your-client-id.apps.googleusercontent.com"
+  GOOGLE_CLIENT_ID: "528904608748-9hq03fpn83ohs4v6qroojb99nbpor1ql.apps.googleusercontent.com"
   # google-tts-key Secret 을 이 경로에 파일로 마운트합니다. (CD 담당 Deployment 에서)
   GOOGLE_APPLICATION_CREDENTIALS: "/var/secrets/google/key.json"
