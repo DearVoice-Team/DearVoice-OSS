@@ -7,7 +7,7 @@ metadata:
     app: backend-migrate
 
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
 
   template:
     metadata:
@@ -15,11 +15,11 @@ spec:
         app: backend-migrate
 
     spec:
-      restartPolicy: Never
+      restartPolicy: OnFailure
 
       containers:
         - name: backend-migrate
-          image: asia-northeast3-docker.pkg.dev/PROJECT_ID/REPOSITORY/backend:latest
+          image: dearvoice/dearvoice-backend:latest
           imagePullPolicy: Always
 
           command: ["python"]

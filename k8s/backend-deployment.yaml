@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: asia-northeast3-docker.pkg.dev/PROJECT_ID/REPOSITORY/backend:latest
+          image: dearvoice/dearvoice-backend:latest
           imagePullPolicy: Always
 
           command: ["/bin/sh", "-c"]
