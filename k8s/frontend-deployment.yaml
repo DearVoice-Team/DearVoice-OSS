@@ -1,4 +1,4 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
@@ -48,4 +48,3 @@ spec:
               port: 80
             initialDelaySeconds: 15
             periodSeconds: 20
-
