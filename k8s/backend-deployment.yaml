@@ -1,0 +1,81 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dearvoice
+  labels:
+    app: backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: dearvoice/dearvoice-backend:latest
+          imagePullPolicy: Always
+
+          command: ["/bin/sh", "-c"]
+          args:
+            - exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --timeout 150
+
+          ports:
+            - containerPort: 8000
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret
+
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/google-tts.json
+
+          volumeMounts:
+            - name: google-tts-key
+              mountPath: /var/secrets/google
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: backend
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+
+      volumes:
+        - name: google-tts-key
+          secret:
+            secretName: google-tts-key
+            items:
+              - key: google-tts.json
+                path: google-tts.json

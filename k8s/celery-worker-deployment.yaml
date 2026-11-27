@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: dearvoice
+  labels:
+    app: celery-worker
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: celery-worker
+
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+
+    spec:
+      containers:
+        - name: celery-worker
+          image: dearvoice/dearvoice-backend:latest
+          imagePullPolicy: Always
+
+          command: ["celery"]
+          args:
+            - -A
+            - config
+            - worker
+            - -l
+            - info
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret
+
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/google-tts.json
+
+          volumeMounts:
+            - name: google-tts-key
+              mountPath: /var/secrets/google
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+
+      volumes:
+        - name: google-tts-key
+          secret:
+            secretName: google-tts-key
+            items:
+              - key: google-tts.json
+                path: google-tts.json

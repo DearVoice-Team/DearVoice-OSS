@@ -6,9 +6,26 @@ namespace: dearvoice
 # Ingress Controller(Traefik) 는 클러스터 전체에 한 번만 설치하므로 따로 적용합니다. (README 참고)
 resources:
   - namespace.yaml
+
+  # Backend
   - config/backend-configmap.yaml
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - backend-migrate-job.yaml
+
+  # Frontend
+  - frontend-deployment.yaml
+  - frontend-service.yaml
+
+  # Celery
+  - celery-worker-deployment.yaml
+  - celery-beat-deployment.yaml
+
+  # Database
   - mysql/service.yaml
   - mysql/statefulset.yaml
   - redis/service.yaml
   - redis/statefulset.yaml
+
+  # Ingress
   - ingress/ingress.yaml

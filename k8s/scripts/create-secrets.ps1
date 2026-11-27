@@ -170,8 +170,8 @@ Write-Step "google-tts-key"
 $keyPath = $envValues["GOOGLE_APPLICATION_CREDENTIALS"]
 if ($keyPath -and (Test-Path -LiteralPath $keyPath -PathType Leaf)) {
     $bytes = [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $keyPath).Path)
-    Set-K8sSecret "google-tts-key" @{ "key.json" = [Convert]::ToBase64String($bytes) }
-    Write-Host "  키 파일을 key.json 으로 넣었습니다."
+    Set-K8sSecret "google-tts-key" @{ "google-tts.json" = [Convert]::ToBase64String($bytes) }
+    Write-Host "  키 파일을 google-tts.json 으로 넣었습니다."
 } else {
     Write-Warn "GOOGLE_APPLICATION_CREDENTIALS 경로에 파일이 없어 건너뜁니다. (TTS 기능만 동작하지 않음)"
 }
