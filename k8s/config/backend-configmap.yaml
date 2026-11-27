@@ -24,4 +24,4 @@ data:
   # 공개 클라이언트 ID (프론트 VITE_GOOGLE_CLIENT_ID 와 같은 값)
   GOOGLE_CLIENT_ID: "528904608748-9hq03fpn83ohs4v6qroojb99nbpor1ql.apps.googleusercontent.com"
   # google-tts-key Secret 을 이 경로에 파일로 마운트합니다. (CD 담당 Deployment 에서)
-  GOOGLE_APPLICATION_CREDENTIALS: "/var/secrets/google/key.json"
+  GOOGLE_APPLICATION_CREDENTIALS: "/var/secrets/google/google-tts.json"

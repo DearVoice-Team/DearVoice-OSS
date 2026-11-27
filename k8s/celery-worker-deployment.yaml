@@ -40,7 +40,7 @@ spec:
 
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /var/secrets/google/key.json
+              value: /var/secrets/google/google-tts.json
 
           volumeMounts:
             - name: google-tts-key
@@ -61,4 +61,4 @@ spec:
             secretName: google-tts-key
             items:
               - key: google-tts.json
-                path: key.json
+                path: google-tts.json

@@ -103,7 +103,7 @@ kubectl -n dearvoice port-forward svc/mysql 13306:3306
 | DB_HOST, DB_PORT, DB_NAME | backend-config | `DB_HOST=mysql` |
 | CELERY_BROKER_URL, CELERY_RESULT_BACKEND | backend-config | `redis://redis:6379/0` |
 | AWS_S3_REGION_NAME, AWS_STORAGE_BUCKET_NAME, GOOGLE_CLIENT_ID | backend-config | 공개 값 |
-| GOOGLE_APPLICATION_CREDENTIALS | backend-config | 파일 경로 `/var/secrets/google/key.json` |
+| GOOGLE_APPLICATION_CREDENTIALS | backend-config | 파일 경로 `/var/secrets/google/google-tts.json` |
 | SECRET_KEY, DB_USER, DB_PASSWORD | backend-secret | |
 | AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY | backend-secret | |
 | CLOVA_SPEECH_SECRET_KEY, CLOVA_SPEECH_INVOKE_URL, OPENAI_API_KEY | backend-secret | |
