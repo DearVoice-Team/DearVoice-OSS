@@ -1,0 +1,4 @@
+# 테스트 / CI 전용 패키지 (운영 이미지에는 설치하지 않음)
+-r requirements.txt
+unittest-xml-reporting==3.2.0
+coverage==7.6.10
