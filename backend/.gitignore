@@ -60,3 +60,7 @@ uploads/
 
 secrets/
 dearvoice-*.json
+# 테스트 결과
+test-reports/
+.coverage
+htmlcov/
