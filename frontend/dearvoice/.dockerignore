@@ -16,6 +16,10 @@ dist-ssr
 .idea
 .DS_Store
 
+# 테스트 결과
+coverage
+test-reports
+
 # 로그
 logs
 *.log
